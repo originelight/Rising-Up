@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stude – Révision intelligente</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+    header {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .logo { font-weight: 800; font-size: 1.4rem; color: var(--primary); }
+    .logo span { color: #f59e0b; }
+    nav { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.5rem 0.9rem;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: 0.15s;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline { background: white; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: #f1f5f9; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-sm { padding: 0.3rem 0.65rem; font-size: 0.8rem; }
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .grid { display: grid; gap: 1rem; }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    h1, h2, h3 { margin-bottom: 0.6rem; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-active { background: #dcfce7; color: #166534; }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.6rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      margin-bottom: 0.7rem;
+    }
+    label { display: block; font-weight: 600; margin-bottom: 0.25rem; font-size: 0.875rem; }
+    .hidden { display: none !important; }
+    .stat { text-align: center; padding: 1rem; }
+    .stat-value { font-size: 1.75rem; font-weight: 800; color: var(--primary); }
+    .stat-label { font-size: 0.85rem; color: var(--muted); }
+    .course-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: #0f172a;
+      color: white;
+      padding: 0.8rem 1.2rem;
+      border-radius: 8px;
+      z-index: 100;
+      max-width: 320px;
+      animation: slideIn 0.3s ease;
+    }
+    .toast-success { background: var(--success); }
+    .toast-error { background: var(--danger); }
+    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } }
+    .screen { display: none; }
+    .screen.active { display: block; }
+    .choice {
+      display: block;
+      padding: 0.65rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 0.45rem;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .choice:hover { background: #f1f5f9; }
+    .choice.selected { border-color: var(--primary); background: #eff6ff; }
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .rank {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #e2e8f0; display: flex; align-items: center;
+      justify-content: center; font-weight: 700; font-size: 0.85rem;
+    }
+    .rank.gold { background: #fbbf24; color: white; }
+    .rank.silver { background: #94a3b8; color: white; }
+    .rank.bronze { background: #b45309; color: white; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">Stude<span>Coin</span></div>
+    <nav id="nav-auth" class="hidden">
+      <button class="btn btn-outline btn-sm" onclick="showScreen('dashboard')">Tableau de bord</button>
+      <button class="btn btn-outline btn-sm" onclick="showScreen('courses')">Cours</button>
+      <button class="btn btn-outline btn-sm" onclick="showScreen('shop')">Boutique</button>
+      <button class="btn btn-outline btn-sm" onclick="showScreen('leaderboard')">Classement</button>
+      <button class="btn btn-outline btn-sm" onclick="showScreen('bonuses')">Bonus</button>
+      <button class="btn btn-outline btn-sm" onclick="logout()">Déconnexion</button>
+    </nav>
+  </header>
+
+  <div class="container">
+    <!-- AUTH -->
+    <div id="screen-auth" class="screen active">
+      <div class="card" style="max-width:420px;margin:3rem auto;">
+        <h2 id="auth-title">Connexion</h2>
+        <div id="auth-form">
+          <label>Email</label>
+          <input type="email" id="auth-email" placeholder="ton@email.com" />
+          <label>Mot de passe</label>
+          <input type="password" id="auth-password" placeholder="••••••••" />
+          <div id="register-fields" class="hidden">
+            <label>Nom complet</label>
+            <input type="text" id="auth-fullname" placeholder="Prénom Nom" />
+            <label>Téléphone</label>
+            <input type="tel" id="auth-phone" placeholder="07 00 00 00 00" />
+            <label>Classe</label>
+            <select id="auth-class">
+              <option value="">Choisir…</option>
+              <option>Terminale A</option>
+              <option>Terminale C</option>
+              <option>Terminale D</option>
+              <option>1ère A</option>
+              <option>1ère C</option>
+              <option>1ère D</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:0.5rem;" onclick="handleAuth()">
+            <span id="auth-btn-text">Se connecter</span>
+          </button>
+          <p class="muted" style="margin-top:1rem;text-align:center;">
+            <a href="#" id="toggle-auth" onclick="toggleAuthMode(event)">Pas encore de compte ? S’inscrire</a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PENDING -->
+    <div id="screen-pending" class="screen">
+      <div class="card" style="max-width:480px;margin:3rem auto;text-align:center;">
+        <h2>Inscription en cours de validation</h2>
+        <p class="muted" style="margin:1rem 0;">Un administrateur doit valider ton compte avant que tu puisses accéder aux cours.</p>
+        <button class="btn btn-outline" style="margin-top:1.5rem;" onclick="logout()">Se déconnecter</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="screen-dashboard" class="screen">
+      <h1>Bonjour <span id="dash-name"></span> 👋</h1>
+      <div class="grid grid-3" style="margin:1.5rem 0;">
+        <div class="card stat">
+          <div class="stat-value" id="dash-coins">0</div>
+          <div class="stat-label">Stude Coin</div>
+        </div>
+        <div class="card stat">
+          <div class="stat-value" id="dash-xp">0</div>
+          <div class="stat-label">XP</div>
+        </div>
+        <div class="card stat">
+          <div class="stat-value" id="dash-rank">—</div>
+          <div class="stat-label">Rang</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Abonnement</h3>
+        <p id="dash-sub">Aucun abonnement actif</p>
+      </div>
+    </div>
+
+    <!-- COURSES -->
+    <div id="screen-courses" class="screen">
+      <h1>Catalogue des cours</h1>
+      <div id="courses-list" class="grid" style="margin-top:1rem;">Chargement…</div>
+    </div>
+
+    <!-- LESSON -->
+    <div id="screen-lesson" class="screen">
+      <button class="btn btn-outline btn-sm" onclick="showScreen('courses')">← Retour</button>
+      <div class="card" style="margin-top:1rem;">
+        <h2 id="lesson-title"></h2>
+        <div id="lesson-content" style="margin:1.5rem 0; line-height:1.7;"></div>
+        <button class="btn btn-primary" id="btn-complete-lesson" onclick="completeLesson()">Marquer comme terminé (+10 XP)</button>
+      </div>
+      <div id="exercises-container" style="margin-top:1.5rem;"></div>
+    </div>
+
+    <!-- SHOP -->
+    <div id="screen-shop" class="screen">
+      <h1>Boutique Stude Coin</h1>
+      <p class="muted">Choisis un forfait, paie par Orange Money, puis confirme ici.</p>
+      <div id="plans-list" class="grid grid-2" style="margin:1.5rem 0;"></div>
+      <div class="card hidden" id="payment-form">
+        <h3>Confirmer mon paiement</h3>
+        <p>Envoie <strong id="pay-amount"></strong> FCFA au numéro <strong id="pay-phone"></strong></p>
+        <p>Référence à indiquer : <code id="pay-ref"></code></p>
+        <label>Numéro qui a envoyé l’argent</label>
+        <input type="tel" id="pay-sender" placeholder="07…" />
+        <label>Identifiant de transaction (optionnel)</label>
+        <input type="text" id="pay-txid" placeholder="Ex: OM123456" />
+        <button class="btn btn-primary" onclick="confirmPayment()">J’ai payé</button>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div id="screen-leaderboard" class="screen">
+      <h1>Classement</h1>
+      <div class="card" id="leaderboard-list">Chargement…</div>
+    </div>
+
+    <!-- BONUSES -->
+    <div id="screen-bonuses" class="screen">
+      <h1>Bonus disponibles</h1>
+      <div id="bonuses-list" class="grid" style="margin-top:1rem;">Chargement…</div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let currentProfile = null;
+    let isRegisterMode = false;
+    let currentLessonId = null;
+    let currentPaymentId = null;
+    let selectedAnswers = {};
+
+    function toggleAuthMode(e) {
+      e.preventDefault();
+      isRegisterMode = !isRegisterMode;
+      document.getElementById('auth-title').textContent = isRegisterMode ? 'Inscription' : 'Connexion';
+      document.getElementById('auth-btn-text').textContent = isRegisterMode ? 'Créer mon compte' : 'Se connecter';
+      document.getElementById('register-fields').classList.toggle('hidden', !isRegisterMode);
+      document.getElementById('toggle-auth').textContent = isRegisterMode
+        ? 'Déjà un compte ? Se connecter'
+        : 'Pas encore de compte ? S’inscrire';
+    }
+
+    async function handleAuth() {
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      if (!email || !password) return toast('Email et mot de passe requis', 'error');
+
+      if (isRegisterMode) {
+        const full_name = document.getElementById('auth-fullname').value.trim();
+        const phone = document.getElementById('auth-phone').value.trim();
+        const class_level = document.getElementById('auth-class').value;
+        if (!full_name || !class_level) return toast('Nom et classe obligatoires', 'error');
+
+        const { error } = await supabase.auth.signUp({
+          email, password,
+          options: { data: { full_name, phone, class_level } }
+        });
+        if (error) return toast(error.message, 'error');
+        toast('Compte créé ! En attente de validation.', 'success');
+        await checkSession();
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) return toast(error.message, 'error');
+        await checkSession();
+      }
+    }
+
+    async function logout() {
+      await supabase.auth.signOut();
+      currentUser = null;
+      currentProfile = null;
+      showScreen('auth');
+      document.getElementById('nav-auth').classList.add('hidden');
+    }
+
+    function showScreen(name) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-' + name).classList.add('active');
+      if (name === 'dashboard') loadDashboard();
+      if (name === 'courses') loadCourses();
+      if (name === 'shop') loadPlans();
+      if (name === 'leaderboard') loadLeaderboard();
+      if (name === 'bonuses') loadBonuses();
+    }
+
+    async function checkSession() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showScreen('auth');
+        return;
+      }
+      currentUser = user;
+      currentProfile = await getCurrentProfile();
+      if (!currentProfile) {
+        toast('Profil introuvable', 'error');
+        return;
+      }
+      document.getElementById('nav-auth').classList.remove('hidden');
+      if (currentProfile.status === 'pending') {
+        showScreen('pending');
+      } else if (currentProfile.status === 'suspended') {
+        toast('Compte suspendu', 'error');
+        await logout();
+      } else {
+        showScreen('dashboard');
+      }
+    }
+
+    async function loadDashboard() {
+      document.getElementById('dash-name').textContent = currentProfile.full_name.split(' ')[0];
+      document.getElementById('dash-coins').textContent = currentProfile.coins;
+      document.getElementById('dash-xp').textContent = currentProfile.xp;
+
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('expires_at')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+      if (sub && new Date(sub.expires_at) > new Date()) {
+        document.getElementById('dash-sub').innerHTML =
+          `Actif jusqu’au <strong>${formatDate(sub.expires_at)}</strong>`;
+      } else {
+        document.getElementById('dash-sub').textContent = 'Aucun abonnement actif';
+      }
+
+      const { data: lb } = await supabase.rpc('get_leaderboard');
+      if (lb) {
+        const me = lb.findIndex(r => r.display_name && r.display_name.startsWith(currentProfile.full_name.split(' ')[0]));
+        document.getElementById('dash-rank').textContent = me >= 0 ? `#${me + 1}` : '—';
+      }
+    }
+
+    async function loadCourses() {
+      const { data: courses } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('published', true)
+        .order('subject');
+      const { data: unlocked } = await supabase
+        .from('unlocked_courses')
+        .select('course_id')
+        .eq('user_id', currentUser.id);
+      const unlockedIds = new Set((unlocked || []).map(u => u.course_id));
+
+      const list = document.getElementById('courses-list');
+      if (!courses?.length) {
+        list.innerHTML = '<p class="muted">Aucun cours publié pour le moment.</p>';
+        return;
+      }
+      list.innerHTML = courses.map(c => {
+        const isUnlocked = unlockedIds.has(c.id) || c.cost_coins === 0;
+        return `
+          <div class="card course-card">
+            <div>
+              <h3>${escapeHtml(c.title)}</h3>
+              <p class="muted">${escapeHtml(c.subject)} · ${escapeHtml(c.class_level)}</p>
+            </div>
+            <div>
+              ${isUnlocked
+                ? `<button class="btn btn-primary btn-sm" onclick="openCourse(${c.id})">Ouvrir</button>`
+                : `<button class="btn btn-outline btn-sm" onclick="unlockCourse(${c.id}, ${c.cost_coins})">
+                     🔒 ${c.cost_coins} coins
+                   </button>`
+              }
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function unlockCourse(courseId, cost) {
+      if (currentProfile.coins < cost) return toast('Solde insuffisant', 'error');
+      const { error } = await supabase.rpc('unlock_course', { p_course_id: courseId });
+      if (error) return toast(error.message, 'error');
+      toast('Cours débloqué !', 'success');
+      currentProfile = await getCurrentProfile();
+      loadCourses();
+    }
+
+    async function openCourse(courseId) {
+      const { data: lessons } = await supabase
+        .from('lessons')
+        .select('*')
+        .eq('course_id', courseId)
+        .order('position');
+      if (!lessons?.length) return toast('Aucune leçon dans ce cours', 'error');
+      openLesson(lessons[0].id);
+    }
+
+    async function openLesson(lessonId) {
+      currentLessonId = lessonId;
+      const { data: lesson } = await supabase
+        .from('lessons')
+        .select('*')
+        .eq('id', lessonId)
+        .single();
+      document.getElementById('lesson-title').textContent = lesson.title;
+      document.getElementById('lesson-content').innerHTML = lesson.content;
+      showScreen('lesson');
+
+      const { data: exercises } = await supabase
+        .from('exercises')
+        .select('id, question, choices')
+        .eq('lesson_id', lessonId);
+      const container = document.getElementById('exercises-container');
+      if (!exercises?.length) {
+        container.innerHTML = '';
+        return;
+      }
+      container.innerHTML = '<h3>Exercices</h3>' + exercises.map(ex => `
+        <div class="card" id="ex-${ex.id}">
+          <p><strong>${escapeHtml(ex.question)}</strong></p>
+          <div id="choices-${ex.id}">
+            ${(ex.choices || []).map(c =>
+              `<div class="choice" onclick="selectChoice(${ex.id}, '${String(c).replace(/'/g, "\\'")}', this)">${escapeHtml(c)}</div>`
+            ).join('')}
+          </div>
+          <button class="btn btn-primary btn-sm" style="margin-top:0.75rem;"
+            onclick="submitAnswer(${ex.id})">Valider</button>
+          <div id="feedback-${ex.id}" style="margin-top:0.5rem;"></div>
+        </div>
+      `).join('');
+    }
+
+    function selectChoice(exId, answer, el) {
+      selectedAnswers[exId] = answer;
+      document.querySelectorAll(`#choices-${exId} .choice`).forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    async function submitAnswer(exId) {
+      const answer = selectedAnswers[exId];
+      if (!answer) return toast('Choisis une réponse', 'error');
+      const { data, error } = await supabase.rpc('submit_answer', {
+        p_exercise_id: exId,
+        p_answer: answer
+      });
+      if (error) return toast(error.message, 'error');
+      const feedback = document.getElementById(`feedback-${exId}`);
+      if (data && data.is_correct) {
+        feedback.innerHTML = `<span style="color:var(--success)">✓ Correct ! +${data.xp_gained || 0} XP</span>`;
+        toast(`+${data.xp_gained || 0} XP`, 'success');
+      } else {
+        feedback.innerHTML = `<span style="color:var(--danger)">✗ Incorrect. ${escapeHtml(data?.explanation || '')}</span>`;
+      }
+      currentProfile = await getCurrentProfile();
+    }
+
+    async function completeLesson() {
+      const { error } = await supabase.rpc('complete_lesson', { p_lesson_id: currentLessonId });
+      if (error) return toast(error.message, 'error');
+      toast('Leçon terminée ! +10 XP', 'success');
+      currentProfile = await getCurrentProfile();
+    }
+
+    async function loadPlans() {
+      const { data: plans } = await supabase.from('plans').select('*').eq('active', true);
+      const list = document.getElementById('plans-list');
+      list.innerHTML = (plans || []).map(p => `
+        <div class="card">
+          <h3>${escapeHtml(p.name)}</h3>
+          <p class="stat-value" style="font-size:1.5rem;">${p.price.toLocaleString()} FCFA</p>
+          <p class="muted">${p.coins_granted} Stude Coin · ${p.duration_days} jours</p>
+          <button class="btn btn-primary" style="width:100%;margin-top:1rem;"
+            onclick="startPayment(${p.id})">Choisir</button>
+        </div>
+      `).join('') || '<p class="muted">Aucune offre disponible.</p>';
+    }
+
+    async function startPayment(planId) {
+      const { data, error } = await supabase.rpc('start_payment', { p_plan_id: planId });
+      if (error) return toast(error.message, 'error');
+      currentPaymentId = data.request_id;
+      document.getElementById('pay-amount').textContent = data.price.toLocaleString();
+      document.getElementById('pay-phone').textContent = data.merchant_phone;
+      document.getElementById('pay-ref').textContent = data.reference_code;
+      document.getElementById('payment-form').classList.remove('hidden');
+    }
+
+    async function confirmPayment() {
+      const sender = document.getElementById('pay-sender').value.trim();
+      const txid = document.getElementById('pay-txid').value.trim();
+      if (!sender) return toast('Numéro obligatoire', 'error');
+      const { error } = await supabase.rpc('confirm_payment', {
+        p_request_id: currentPaymentId,
+        p_sender_phone: sender,
+        p_transaction_id: txid || null
+      });
+      if (error) return toast(error.message, 'error');
+      toast('Demande envoyée ! En attente de validation admin.', 'success');
+      document.getElementById('payment-form').classList.add('hidden');
+    }
+
+    async function loadLeaderboard() {
+      const { data } = await supabase.rpc('get_leaderboard');
+      const list = document.getElementById('leaderboard-list');
+      if (!data?.length) {
+        list.innerHTML = '<p class="muted">Pas encore de classement.</p>';
+        return;
+      }
+      list.innerHTML = data.map((r, i) => {
+        const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+        return `
+          <div class="leaderboard-item">
+            <div class="rank ${rankClass}">${i + 1}</div>
+            <div style="flex:1;">
+              <strong>${escapeHtml(r.display_name)}</strong>
+              <span class="muted"> · ${escapeHtml(r.class_level || '')}</span>
+            </div>
+            <div style="font-weight:700;">${r.xp} XP</div>
+          </div>`;
+      }).join('');
+    }
+
+    async function loadBonuses() {
+      const { data } = await supabase.from('bonuses').select('*').eq('active', true);
+      const list = document.getElementById('bonuses-list');
+      if (!data?.length) {
+        list.innerHTML = '<p class="muted">Aucun bonus actif.</p>';
+        return;
+      }
+      list.innerHTML = data.map(b => `
+        <div class="card course-card">
+          <div>
+            <h3>${escapeHtml(b.title)}</h3>
+            <p class="muted">+${b.coins_reward} coins</p>
+          </div>
+          <button class="btn btn-success btn-sm" onclick="claimBonus(${b.id})">Récupérer</button>
+        </div>
+      `).join('');
+    }
+
+    async function claimBonus(id) {
+      const { error } = await supabase.rpc('claim_bonus', { p_bonus_id: id });
+      if (error) return toast(error.message, 'error');
+      toast('Bonus récupéré !', 'success');
+      currentProfile = await getCurrentProfile();
+      loadBonuses();
+      loadDashboard();
+    }
+
+    checkSession();
+    supabase.auth.onAuthStateChange(() => checkSession());
+  </script>
+</body>
+</html>
