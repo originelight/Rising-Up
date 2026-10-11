@@ -1,8 +1,8 @@
 // ============================================================
 // CONFIGURATION – REMPLACE UNIQUEMENT CES 2 VALEURS
 // ============================================================
-const SUPABASE_URL = 'https://TON-PROJET.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJ...ta_clé_anon...';
+const SUPABASE_URL = 'https://uwmwkpdgevdyzrvvhpqu.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_BbOqovcaoXE4VafFA6UQ7A_axBE-091';
 
 // ============================================================
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
