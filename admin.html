@@ -333,13 +333,13 @@
     async function adminLogin() {
       const email = document.getElementById('admin-email').value.trim();
       const password = document.getElementById('admin-password').value;
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await window.sb.auth.signInWithPassword({ email, password });
       if (error) return toast(error.message, 'error');
       await checkAdmin();
     }
 
     async function checkAdmin() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await window.sb.auth.getUser();
       if (!user) {
         document.getElementById('admin-login').classList.add('active');
         document.querySelectorAll('.screen:not(#admin-login)').forEach(s => s.classList.remove('active'));
@@ -348,7 +348,7 @@
       adminProfile = await getCurrentProfile();
       if (!adminProfile || adminProfile.role !== 'admin') {
         toast('Accès réservé aux administrateurs', 'error');
-        await supabase.auth.signOut();
+        await window.sb.auth.signOut();
         return;
       }
       document.getElementById('admin-login').classList.remove('active');
@@ -371,13 +371,13 @@
     }
 
     async function logout() {
-      await supabase.auth.signOut();
+      await window.sb.auth.signOut();
       location.reload();
     }
 
     // ---------- DASHBOARD ----------
     async function loadAdminDashboard() {
-      const { data } = await supabase.rpc('admin_students_overview');
+      const { data } = await window.sb.rpc('admin_students_overview');
       const stats = document.getElementById('dash-stats');
       if (!data) {
         stats.innerHTML = '<p class="muted">Impossible de charger les stats.</p>';
@@ -409,7 +409,7 @@
 
     // ---------- STUDENTS ----------
     async function loadStudents() {
-      const { data } = await supabase.rpc('admin_students_overview');
+      const { data } = await window.sb.rpc('admin_students_overview');
       const pending = (data || []).filter(s => s.status === 'pending');
       const all = data || [];
 
@@ -443,7 +443,7 @@
     }
 
     async function setStatus(userId, status) {
-      const { error } = await supabase.rpc('set_student_status', { p_user_id: userId, p_status: status });
+      const { error } = await window.sb.rpc('set_student_status', { p_user_id: userId, p_status: status });
       if (error) return toast(error.message, 'error');
       toast('Statut mis à jour', 'success');
       loadStudents();
@@ -452,7 +452,7 @@
 
     // ---------- PAYMENTS ----------
     async function loadPayments() {
-      const { data: pending } = await supabase
+      const { data: pending } = await window.sb
         .from('payment_requests')
         .select('*, plans(name, price), profiles(full_name, phone)')
         .eq('status', 'pending')
@@ -474,7 +474,7 @@
            </tr>`).join('')}</tbody></table>`
         : '<p class="muted">Aucune demande en attente.</p>';
 
-      const { data: hist } = await supabase
+      const { data: hist } = await window.sb
         .from('payment_requests')
         .select('*, plans(name, price), profiles(full_name)')
         .neq('status', 'pending')
@@ -493,14 +493,14 @@
     }
 
     async function approvePay(id) {
-      const { error } = await supabase.rpc('approve_payment', { p_request_id: id });
+      const { error } = await window.sb.rpc('approve_payment', { p_request_id: id });
       if (error) return toast(error.message, 'error');
       toast('Paiement validé – coins ajoutés', 'success');
       loadPayments();
     }
 
     async function rejectPay(id) {
-      const { error } = await supabase.rpc('reject_payment', { p_request_id: id });
+      const { error } = await window.sb.rpc('reject_payment', { p_request_id: id });
       if (error) return toast(error.message, 'error');
       toast('Paiement rejeté', 'success');
       loadPayments();
@@ -508,11 +508,11 @@
 
     // ---------- COURSES ----------
     async function loadCourseSelects() {
-      const { data: courses } = await supabase.from('courses').select('id, title').order('title');
+      const { data: courses } = await window.sb.from('courses').select('id, title').order('title');
       const opts = (courses || []).map(c => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join('');
       document.getElementById('lesson-course').innerHTML = opts || '<option value="">Aucun cours</option>';
 
-      const { data: lessons } = await supabase.from('lessons').select('id, title, course_id').order('position');
+      const { data: lessons } = await window.sb.from('lessons').select('id, title, course_id').order('position');
       document.getElementById('ex-lesson').innerHTML = (lessons || []).map(l =>
         `<option value="${l.id}">${escapeHtml(l.title)}</option>`
       ).join('') || '<option value="">Aucune leçon</option>';
@@ -526,7 +526,7 @@
       const published = document.getElementById('course-published').checked;
       if (!title || !subject) return toast('Titre et matière requis', 'error');
 
-      const { error } = await supabase.from('courses').insert({
+      const { error } = await window.sb.from('courses').insert({
         title, subject, class_level, cost_coins, published
       });
       if (error) return toast(error.message, 'error');
@@ -543,7 +543,7 @@
       const position = parseInt(document.getElementById('lesson-position').value) || 1;
       if (!course_id || !title) return toast('Cours et titre requis', 'error');
 
-      const { error } = await supabase.from('lessons').insert({
+      const { error } = await window.sb.from('lessons').insert({
         course_id, title, content, position
       });
       if (error) return toast(error.message, 'error');
@@ -568,7 +568,7 @@
       // On insère d’abord l’exercice sans la bonne réponse (selon ton schéma)
       // Si ton schéma a correct_answer dans exercises, on l’inclut.
       // Sinon tu as une table séparée – adapte selon schema.sql
-      const { error } = await supabase.from('exercises').insert({
+      const { error } = await window.sb.from('exercises').insert({
         lesson_id, question, choices, correct_answer, explanation, xp_reward
       });
       if (error) return toast(error.message, 'error');
@@ -579,7 +579,7 @@
     }
 
     async function loadAdminCourses() {
-      const { data } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
+      const { data } = await window.sb.from('courses').select('*').order('created_at', { ascending: false });
       document.getElementById('admin-courses-list').innerHTML = (data || []).length
         ? `<table><thead><tr><th>Titre</th><th>Matière</th><th>Classe</th><th>Coins</th><th>Publié</th></tr></thead>
            <tbody>${data.map(c => `<tr>
@@ -600,7 +600,7 @@
       const duration_days = parseInt(document.getElementById('plan-days').value);
       if (!name || !price) return toast('Nom et prix requis', 'error');
 
-      const { error } = await supabase.from('plans').insert({
+      const { error } = await window.sb.from('plans').insert({
         name, price, coins_granted, duration_days, active: true
       });
       if (error) return toast(error.message, 'error');
@@ -609,7 +609,7 @@
     }
 
     async function loadAdminPlans() {
-      const { data } = await supabase.from('plans').select('*').order('id');
+      const { data } = await window.sb.from('plans').select('*').order('id');
       document.getElementById('plans-admin-list').innerHTML = (data || []).map(p => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid var(--border);">
           <div>
@@ -629,7 +629,7 @@
       const condition_value = parseInt(document.getElementById('bonus-value').value);
       if (!title) return toast('Titre requis', 'error');
 
-      const { error } = await supabase.from('bonuses').insert({
+      const { error } = await window.sb.from('bonuses').insert({
         title, coins_reward, condition_type, condition_value, active: true
       });
       if (error) return toast(error.message, 'error');
@@ -638,7 +638,7 @@
     }
 
     async function loadAdminBonuses() {
-      const { data } = await supabase.from('bonuses').select('*').order('id');
+      const { data } = await window.sb.from('bonuses').select('*').order('id');
       document.getElementById('bonuses-admin-list').innerHTML = (data || []).map(b => `
         <div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border);">
           <div>
@@ -657,7 +657,7 @@
       const reason = document.getElementById('adjust-reason').value.trim();
       if (!userId || !amount || !reason) return toast('Tous les champs sont obligatoires', 'error');
 
-      const { error } = await supabase.rpc('admin_adjust_coins', {
+      const { error } = await window.sb.rpc('admin_adjust_coins', {
         p_user_id: userId,
         p_amount: amount,
         p_reason: reason
@@ -671,7 +671,7 @@
 
     // INIT
     checkAdmin();
-    supabase.auth.onAuthStateChange(() => checkAdmin());
+    window.sb.auth.onAuthStateChange(() => checkAdmin());
   </script>
 </body>
 </html>

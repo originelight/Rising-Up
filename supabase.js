@@ -1,13 +1,13 @@
-const SUPABASE_URL = 'https://uwmwkpdgevdyzrvvhpqu.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_BbOqovcaoXE4VafFA6UQ7A_axBE-091';
+const SUPABASE_URL = 'https://TON-PROJET.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJ...ta_clé_anon...';
 
-// Création du client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Nom qui ne peut pas entrer en conflit
+window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function getCurrentProfile() {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await window.sb.auth.getUser();
   if (!user) return null;
-  const { data } = await supabase
+  const { data } = await window.sb
     .from('profiles')
     .select('*')
     .eq('id', user.id)

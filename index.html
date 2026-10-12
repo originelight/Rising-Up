@@ -308,7 +308,7 @@
         const class_level = document.getElementById('auth-class').value;
         if (!full_name || !class_level) return toast('Nom et classe obligatoires', 'error');
 
-        const { error } = await supabase.auth.signUp({
+        const { error } = await window.sb.auth.signUp({
           email, password,
           options: { data: { full_name, phone, class_level } }
         });
@@ -316,14 +316,14 @@
         toast('Compte créé ! En attente de validation.', 'success');
         await checkSession();
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await window.sb.auth.signInWithPassword({ email, password });
         if (error) return toast(error.message, 'error');
         await checkSession();
       }
     }
 
     async function logout() {
-      await supabase.auth.signOut();
+      await window.sb.auth.signOut();
       currentUser = null;
       currentProfile = null;
       showScreen('auth');
@@ -341,7 +341,7 @@
     }
 
     async function checkSession() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await window.sb.auth.getUser();
       if (!user) {
         showScreen('auth');
         return;
@@ -368,7 +368,7 @@
       document.getElementById('dash-coins').textContent = currentProfile.coins;
       document.getElementById('dash-xp').textContent = currentProfile.xp;
 
-      const { data: sub } = await supabase
+      const { data: sub } = await window.sb
         .from('subscriptions')
         .select('expires_at')
         .eq('user_id', currentUser.id)
@@ -380,7 +380,7 @@
         document.getElementById('dash-sub').textContent = 'Aucun abonnement actif';
       }
 
-      const { data: lb } = await supabase.rpc('get_leaderboard');
+      const { data: lb } = await window.sb.rpc('get_leaderboard');
       if (lb) {
         const me = lb.findIndex(r => r.display_name && r.display_name.startsWith(currentProfile.full_name.split(' ')[0]));
         document.getElementById('dash-rank').textContent = me >= 0 ? `#${me + 1}` : '—';
@@ -388,12 +388,12 @@
     }
 
     async function loadCourses() {
-      const { data: courses } = await supabase
+      const { data: courses } = await window.sb
         .from('courses')
         .select('*')
         .eq('published', true)
         .order('subject');
-      const { data: unlocked } = await supabase
+      const { data: unlocked } = await window.sb
         .from('unlocked_courses')
         .select('course_id')
         .eq('user_id', currentUser.id);
@@ -426,7 +426,7 @@
 
     async function unlockCourse(courseId, cost) {
       if (currentProfile.coins < cost) return toast('Solde insuffisant', 'error');
-      const { error } = await supabase.rpc('unlock_course', { p_course_id: courseId });
+      const { error } = await window.sb.rpc('unlock_course', { p_course_id: courseId });
       if (error) return toast(error.message, 'error');
       toast('Cours débloqué !', 'success');
       currentProfile = await getCurrentProfile();
@@ -434,7 +434,7 @@
     }
 
     async function openCourse(courseId) {
-      const { data: lessons } = await supabase
+      const { data: lessons } = await window.sb
         .from('lessons')
         .select('*')
         .eq('course_id', courseId)
@@ -445,7 +445,7 @@
 
     async function openLesson(lessonId) {
       currentLessonId = lessonId;
-      const { data: lesson } = await supabase
+      const { data: lesson } = await window.sb
         .from('lessons')
         .select('*')
         .eq('id', lessonId)
@@ -454,7 +454,7 @@
       document.getElementById('lesson-content').innerHTML = lesson.content;
       showScreen('lesson');
 
-      const { data: exercises } = await supabase
+      const { data: exercises } = await window.sb
         .from('exercises')
         .select('id, question, choices')
         .eq('lesson_id', lessonId);
@@ -487,7 +487,7 @@
     async function submitAnswer(exId) {
       const answer = selectedAnswers[exId];
       if (!answer) return toast('Choisis une réponse', 'error');
-      const { data, error } = await supabase.rpc('submit_answer', {
+      const { data, error } = await window.sb.rpc('submit_answer', {
         p_exercise_id: exId,
         p_answer: answer
       });
@@ -503,14 +503,14 @@
     }
 
     async function completeLesson() {
-      const { error } = await supabase.rpc('complete_lesson', { p_lesson_id: currentLessonId });
+      const { error } = await window.sb.rpc('complete_lesson', { p_lesson_id: currentLessonId });
       if (error) return toast(error.message, 'error');
       toast('Leçon terminée ! +10 XP', 'success');
       currentProfile = await getCurrentProfile();
     }
 
     async function loadPlans() {
-      const { data: plans } = await supabase.from('plans').select('*').eq('active', true);
+      const { data: plans } = await window.sb.from('plans').select('*').eq('active', true);
       const list = document.getElementById('plans-list');
       list.innerHTML = (plans || []).map(p => `
         <div class="card">
@@ -524,7 +524,7 @@
     }
 
     async function startPayment(planId) {
-      const { data, error } = await supabase.rpc('start_payment', { p_plan_id: planId });
+      const { data, error } = await window.sb.rpc('start_payment', { p_plan_id: planId });
       if (error) return toast(error.message, 'error');
       currentPaymentId = data.request_id;
       document.getElementById('pay-amount').textContent = data.price.toLocaleString();
@@ -537,7 +537,7 @@
       const sender = document.getElementById('pay-sender').value.trim();
       const txid = document.getElementById('pay-txid').value.trim();
       if (!sender) return toast('Numéro obligatoire', 'error');
-      const { error } = await supabase.rpc('confirm_payment', {
+      const { error } = await window.sb.rpc('confirm_payment', {
         p_request_id: currentPaymentId,
         p_sender_phone: sender,
         p_transaction_id: txid || null
@@ -548,7 +548,7 @@
     }
 
     async function loadLeaderboard() {
-      const { data } = await supabase.rpc('get_leaderboard');
+      const { data } = await window.sb.rpc('get_leaderboard');
       const list = document.getElementById('leaderboard-list');
       if (!data?.length) {
         list.innerHTML = '<p class="muted">Pas encore de classement.</p>';
@@ -569,7 +569,7 @@
     }
 
     async function loadBonuses() {
-      const { data } = await supabase.from('bonuses').select('*').eq('active', true);
+      const { data } = await window.sb.from('bonuses').select('*').eq('active', true);
       const list = document.getElementById('bonuses-list');
       if (!data?.length) {
         list.innerHTML = '<p class="muted">Aucun bonus actif.</p>';
@@ -587,7 +587,7 @@
     }
 
     async function claimBonus(id) {
-      const { error } = await supabase.rpc('claim_bonus', { p_bonus_id: id });
+      const { error } = await window.sb.rpc('claim_bonus', { p_bonus_id: id });
       if (error) return toast(error.message, 'error');
       toast('Bonus récupéré !', 'success');
       currentProfile = await getCurrentProfile();
@@ -596,7 +596,7 @@
     }
 
     checkSession();
-    supabase.auth.onAuthStateChange(() => checkSession());
+    window.sb.auth.onAuthStateChange(() => checkSession());
   </script>
 </body>
 </html>
