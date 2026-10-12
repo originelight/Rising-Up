@@ -1,12 +1,13 @@
 const SUPABASE_URL = 'https://uwmwkpdgevdyzrvvhpqu.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_BbOqovcaoXE4VafFA6UQ7A_axBE-091';
 
-window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Création du client
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function getCurrentProfile() {
-  const { data: { user } } = await window.sb.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data } = await window.sb
+  const { data } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
