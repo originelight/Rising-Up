@@ -5,7 +5,10 @@ const SUPABASE_URL = 'https://uwmwkpdgevdyzrvvhpqu.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_BbOqovcaoXE4VafFA6UQ7A_axBE-091';
 
 // ============================================================
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// On expose sous le nom "supabase" pour le reste du code
+const supabase = supabaseClient;
 
 // Helpers communs
 async function getCurrentProfile() {
